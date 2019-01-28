@@ -1,28 +1,29 @@
+import model.Record;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVRecord;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
 
-class CSVWriter {
-
+class CSVWriter implements IDataWriter {
     private CSVPrinter csvPrinter;
-    private List<String> headers;
 
     CSVWriter(String path, List<String> headers) throws IOException {
         BufferedWriter writer = Files.newBufferedWriter(Paths.get(path));
-        csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(headers.toArray(new String[0])));
-        this.headers = headers;
+        csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(headers.toArray(new String[0])).withIgnoreHeaderCase().withTrim());
     }
 
-    void saveRecordsByIndexes(List<CSVRecord> records) throws IOException {
-        for (CSVRecord csvRecord : records) {
-            csvPrinter.printRecord(headers.stream().map(csvRecord::get).collect(Collectors.toList()));
+    @Override
+    public void write(List<Record> records) throws IOException {
+        for (Record record : records) {
+            try {
+                csvPrinter.printRecord(record.getValues());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         csvPrinter.flush();
     }
