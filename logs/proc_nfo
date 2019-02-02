@@ -1,0 +1,42 @@
+x definition:
+	"time,
+		user@domain,
+			computer,
+				process name,
+					start/end"
+							
+x mod:
+	NONE -- easy mode brö
+	
+x add (remote code execution);
+	1) RCE -- C123@DOM1 {00}
+		63380,P666
+			63385
+			
+	2) RCE -- U123@DOM1 {01}
+		103512,C1152,P666
+			126608
+			
+	3) RCE -- C987@DOM1 {02}
+		199892,P777
+			220905
+		
+	4) RCE -- C3761@DOM1 {03}
+		321188,P777
+			328724
+			
+	5) RCE -- C999@DOM1 {04}
+		466510,P1337
+			468625
+			
+	6) RCE -- C300@DOM1 {55}
+		4730161,P750
+			4742031
+			
+	7) RCE -- C1268@DOM1 {56}
+		4811775,P777
+			4827524
+			
+	8) RCE -- C20666@DOM1 {57}
+		4881601,P9000
+			4897164

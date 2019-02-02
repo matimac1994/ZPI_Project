@@ -1,0 +1,48 @@
+x definition:
+	"time,
+		duration,
+			source computer,
+				source port,
+					destination computer,
+						destination port,
+							protocol,
+								packet count,
+									byte count"
+							
+x mod:
+	ALL PORTS;	80 -> 8080	[every 2nd log file, started from 00]
+	SRC PORT;	N1 -> 3389
+	TIME; 		60 -> 55
+	PORTS; 		N2 -> 443
+	HOSTS;		C111x -> C21x
+	~;			awk 'NR % 24 == 0'
+	
+x add;
+	1) ms08_067_netapi -- C467 -> C797; {04}
+		vulner scan - 265921, (137 & 14480<->445)
+		exploit - 	266000, (12143<->445)
+					302992, (3389<->1040)
+					...
+					302993, {data transfer [arp modif?]}
+	2) ms08_067_netapi -- C467 -> C396; {09}
+		exploit - 	633633~4, (3672<->445)
+					638051~2, (3389<->3041)
+					...
+					647081~2, {data transfer ...}
+	3) MITM -- C797<~>C467<~>C396; {12}
+		data transfer - 820121, (8080<->4163 & 6163<->8080)
+			data transfer - 820121, (8080<->6163 & 8080<->4163)
+		data transfer - 820350, (8080<->4165 & 6179<->8080)
+			data transfer - 820350, (8080<->6179 & 8080<->4165)
+		data transfer - 820354, (8080<->4172 & 6185<->8080)
+			data transfer - 820354, (8080<->6185 & 8080<->4172)
+	4) ms08_067_netapi -- C467 -> C1065; {16}
+		exploit - 	1155138, (4195<->445)
+					1163528, (3389<->2619)
+					...
+					1174403, {data transfer ...}
+	5) MITM -- C1065<~>C467<~>C396; {17}
+		data transfer - 1228156, (8080<->5419 & 10629<->8080)
+			data transfer - 1228156, (8080<->10629 & 8080<->5419)
+		data transfer - , (8080<->5423 & 16570<->8080)
+			data transfer - , (8080<->16570 & 8080<->5423)
