@@ -2,7 +2,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import contrib
 from numpy import genfromtxt
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 
 
 def pack_features_vector(features, labels):
@@ -36,8 +36,8 @@ proc_split_test_csv_name = "splitTestProcLogs.csv"
 proc_train_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end', 'class']
 proc_test_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end']
 
-proc_train_data_CSV = readCSV(proc_train_data_source, proc_train_column_names)
-proc_test_data_CSV = readCSV(proc_test_data_source, proc_test_column_names)
+proc_train_data_CSV = read_csv(proc_train_data_source, proc_train_column_names)
+proc_test_data_CSV = read_csv(proc_test_data_source, proc_test_column_names)
 
 X = proc_train_data_CSV.iloc[:, 1:5].values
 Y = proc_test_data_CSV.iloc[:, 1:5].values
@@ -63,6 +63,8 @@ Y[:, 3] = labelencoder4.fit_transform(Y[:, 3])
 proc_train_data_CSV.iloc[:, 1:5] = X
 proc_test_data_CSV.iloc[:, 1:5] = Y
 
+proc_train_data_CSV = proc_train_data_CSV[['process_name', 'class']]
+
 proc_train_data_CSV.to_csv(proc_split_train_csv_name, header=False, index=False)
 proc_test_data_CSV.to_csv(proc_split_test_csv_name, header=False, index=False)
 
@@ -76,7 +78,7 @@ batch_size = 10
 train_dataset = tf.data.experimental.make_csv_dataset(
     proc_split_train_csv_name,
     batch_size,
-    column_names=proc_train_column_names,
+    column_names=['process_name', 'class'],
     label_name=label_name,
     num_epochs=2
 )
@@ -86,7 +88,7 @@ train_dataset = train_dataset.map(pack_features_vector)
 features, labels = next(iter(train_dataset))
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(10, activation=tf.nn.relu, input_shape=(5,)),
+    tf.keras.layers.Dense(10, activation=tf.nn.relu, input_shape=(1,)),
     tf.keras.layers.Dense(10, activation=tf.nn.relu),
     tf.keras.layers.Dense(3)
 ])
@@ -128,6 +130,25 @@ for epoch in range(num_epochs):
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
 
+test_dataset = tf.data.experimental.make_csv_dataset(
+    proc_split_train_csv_name,
+    batch_size,
+    column_names=['process_name', 'class'],
+    label_name=label_name,
+    num_epochs=1,
+    shuffle=False)
+
+test_dataset = test_dataset.map(pack_features_vector)
+
+test_accuracy = tfe.metrics.Accuracy()
+
+for (x, y) in test_dataset:
+  logits = model(x)
+  prediction = tf.argmax(logits, axis=1, output_type=tf.int32)
+  test_accuracy(prediction, y)
+
+print("Test set accuracy: {:.3%}".format(test_accuracy.result()))
+
 test_dataset = genfromtxt(proc_split_test_csv_name, delimiter=',')
 
 predictions = model(test_dataset)
@@ -136,4 +157,5 @@ for i, logits in enumerate(predictions):
     class_idx = tf.argmax(logits).numpy()
     p = tf.nn.softmax(logits)[class_idx]
     name = class_names[class_idx]
-    print("Example {} prediction: {} ({:4.1f}%)".format(i, name, 100 * p))
+    if class_idx == 1:
+        print('Attack in example {} prediction: {} ({:4.1f}%)'.format(i, name, 100 * p))
