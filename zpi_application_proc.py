@@ -42,6 +42,8 @@ proc_test_data_CSV = readCSV(proc_test_data_source, proc_test_column_names)
 X = proc_train_data_CSV.iloc[:, 1:5].values
 Y = proc_test_data_CSV.iloc[:, 1:5].values
 
+# Replace string values into numeric
+
 labelencoder1 = LabelEncoder()
 X[:, 0] = labelencoder1.fit_transform(X[:, 0])
 Y[:, 0] = labelencoder1.fit_transform(Y[:, 0])
