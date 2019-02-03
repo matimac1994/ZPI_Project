@@ -2,6 +2,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import contrib
 from numpy import genfromtxt
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 
 def pack_features_vector(features, labels):
@@ -23,54 +24,71 @@ def grad(model, inputs, targets):
 def readCSV(source, column_names):
     return pd.read_csv(source, sep=',', decimal='.', header=None, names=column_names)
 
+
 tf.enable_eager_execution()
 
-net_split_train_csv_name = "splitTrainNetLogs.csv"
-net_split_test_csv_name = "splitTestNetLogs.csv"
-net_train_data_source = "NETtrain.csv"
-net_test_data_source = "NETtest.csv"
+proc_train_data_source = "PROCtrain.csv"
+proc_test_data_source = "PROCtest.csv"
+
+proc_split_train_csv_name = "splitTrainProcLogs.csv"
+proc_split_test_csv_name = "splitTestProcLogs.csv"
+
+proc_train_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end', 'class']
+proc_test_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end']
+
+proc_train_data_CSV = readCSV(proc_train_data_source, proc_train_column_names)
+proc_test_data_CSV = readCSV(proc_test_data_source, proc_test_column_names)
+
+X = proc_train_data_CSV.iloc[:, 1:5].values
+Y = proc_test_data_CSV.iloc[:, 1:5].values
+
+labelencoder1 = LabelEncoder()
+X[:, 0] = labelencoder1.fit_transform(X[:, 0])
+Y[:, 0] = labelencoder1.fit_transform(Y[:, 0])
+
+labelencoder2 = LabelEncoder()
+X[:, 1] = labelencoder2.fit_transform(X[:, 1])
+Y[:, 1] = labelencoder2.fit_transform(Y[:, 1])
+
+labelencoder3 = LabelEncoder()
+X[:, 2] = labelencoder3.fit_transform(X[:, 2])
+Y[:, 2] = labelencoder3.fit_transform(Y[:, 2])
+
+labelencoder4 = LabelEncoder()
+X[:, 3] = labelencoder4.fit_transform(X[:, 3])
+Y[:, 3] = labelencoder4.fit_transform(Y[:, 3])
+
+proc_train_data_CSV.iloc[:, 1:5] = X
+proc_test_data_CSV.iloc[:, 1:5] = Y
+
+proc_train_data_CSV.to_csv(proc_split_train_csv_name, header=False, index=False)
+proc_test_data_CSV.to_csv(proc_split_test_csv_name, header=False, index=False)
 
 
-net_train_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer', 'destination_port',
-                      'protocol', 'packet_count', 'byte_count', 'class']
-net_test_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer', 'destination_port',
-                      'protocol', 'packet_count', 'byte_count']
-
-split_train_column_names = ['time', 'duration', 'packet_count', 'byte_count', 'class']
-split_test_column_names = ['time', 'duration', 'packet_count', 'byte_count']
-
-net_train_data_CSV = readCSV(net_train_data_source, net_train_column_names)
-net_test_data_CSV = readCSV(net_test_data_source, net_test_column_names)
-
-split_train_data = net_train_data_CSV[split_train_column_names]
-split_test_data = net_test_data_CSV[split_test_column_names]
-
-split_train_data.to_csv(net_split_train_csv_name, index=False, header=False)
-split_test_data.to_csv(net_split_test_csv_name, index=False, header=False)
-
-feature_names = split_train_column_names[:-1]
-label_name = split_train_column_names[-1]
+feature_names = proc_train_column_names[:-1]
+label_name = proc_train_column_names[-1]
 
 class_names = ['No attack', 'Attack']
 
-batch_size = 32
+batch_size = 10
 
 train_dataset = tf.data.experimental.make_csv_dataset(
-    net_split_train_csv_name,
+    proc_split_train_csv_name,
     batch_size,
-    column_names=split_train_column_names,
+    column_names=proc_train_column_names,
     label_name=label_name,
     num_epochs=2
 )
+
 
 train_dataset = train_dataset.map(pack_features_vector)
 
 features, labels = next(iter(train_dataset))
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(10, activation=tf.nn.relu, input_shape=(4,)),
+    tf.keras.layers.Dense(10, activation=tf.nn.relu, input_shape=(5,)),
     tf.keras.layers.Dense(10, activation=tf.nn.relu),
-    tf.keras.layers.Dense(2)
+    tf.keras.layers.Dense(3)
 ])
 
 predictions = model(features)
@@ -94,19 +112,14 @@ for epoch in range(num_epochs):
     epoch_loss_avg = tfe.metrics.Mean()
     epoch_accuracy = tfe.metrics.Accuracy()
 
-    # Training loop - using batches of 32
     for x, y in train_dataset:
-        # Optimize the model
         loss_value, grads = grad(model, x, y)
         optimizer.apply_gradients(zip(grads, model.trainable_variables),
                                   global_step)
 
-        # Track progress
-        epoch_loss_avg(loss_value)  # add current batch loss
-        # compare predicted label to actual label
+        epoch_loss_avg(loss_value)
         epoch_accuracy(tf.argmax(model(x), axis=1, output_type=tf.int32), y)
 
-    # end epoch
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
 
@@ -115,7 +128,7 @@ for epoch in range(num_epochs):
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
 
-test_dataset = genfromtxt(net_split_test_csv_name, delimiter=',')
+test_dataset = genfromtxt(proc_split_test_csv_name, delimiter=',')
 
 predictions = model(test_dataset)
 
