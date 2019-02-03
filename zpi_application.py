@@ -94,19 +94,14 @@ for epoch in range(num_epochs):
     epoch_loss_avg = tfe.metrics.Mean()
     epoch_accuracy = tfe.metrics.Accuracy()
 
-    # Training loop - using batches of 32
     for x, y in train_dataset:
-        # Optimize the model
         loss_value, grads = grad(model, x, y)
         optimizer.apply_gradients(zip(grads, model.trainable_variables),
                                   global_step)
 
-        # Track progress
         epoch_loss_avg(loss_value)  # add current batch loss
-        # compare predicted label to actual label
         epoch_accuracy(tf.argmax(model(x), axis=1, output_type=tf.int32), y)
 
-    # end epoch
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
 
@@ -123,6 +118,5 @@ for i, logits in enumerate(predictions):
     class_idx = tf.argmax(logits).numpy()
     p = tf.nn.softmax(logits)[class_idx]
     name = class_names[class_idx]
-    print("Example {} prediction: {} ({:4.1f}%)".format(i, name, 100 * p))
-
-#changes......
+    if class_idx == 1:
+        print('Attack in example {} prediction: {} ({:4.1f}%)'.format(i, name, 100 * p))
