@@ -9,19 +9,20 @@ def pack_features_vector(features, labels):
     return tf.dtypes.cast(features, tf.float32), labels
 
 
-def loss(model, x, y):
-    y_ = model(x)
+def loss(new_model, x, y):
+    y_ = new_model(x)
     return tf.losses.sparse_softmax_cross_entropy(labels=y, logits=y_)
 
 
-def grad(model, inputs, targets):
+def grad(new_model, inputs, targets):
     with tf.GradientTape() as tape:
-        loss_value = loss(model, inputs, targets)
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+        loss_value = loss(new_model, inputs, targets)
+    return loss_value, tape.gradient(loss_value, new_model.trainable_variables)
 
 
-def readCSV(source, column_names):
+def read_csv(source, column_names):
     return pd.read_csv(source, sep=',', decimal='.', header=None, names=column_names)
+
 
 tf.enable_eager_execution()
 
@@ -30,11 +31,12 @@ net_split_test_csv_name = "splitTestNetLogs.csv"
 net_train_data_source = "NETtrain.csv"
 net_test_data_source = "NETtest.csv"
 
-
-net_train_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer', 'destination_port',
-                      'protocol', 'packet_count', 'byte_count', 'class']
-net_test_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer', 'destination_port',
-                      'protocol', 'packet_count', 'byte_count']
+net_train_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer',
+                          'destination_port',
+                          'protocol', 'packet_count', 'byte_count', 'class']
+net_test_column_names = ['time', 'duration', 'source_computer', 'source_port', 'destination_computer',
+                         'destination_port',
+                         'protocol', 'packet_count', 'byte_count']
 
 split_train_column_names = ['time', 'duration', 'packet_count', 'byte_count', 'class']
 split_test_column_names = ['time', 'duration', 'packet_count', 'byte_count']

@@ -2,7 +2,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import contrib
 from numpy import genfromtxt
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 
 
 def pack_features_vector(features, labels):
@@ -10,18 +10,18 @@ def pack_features_vector(features, labels):
     return tf.dtypes.cast(features, tf.float32), labels
 
 
-def loss(model, x, y):
-    y_ = model(x)
+def loss(new_model, x, y):
+    y_ = new_model(x)
     return tf.losses.sparse_softmax_cross_entropy(labels=y, logits=y_)
 
 
-def grad(model, inputs, targets):
+def grad(new_model, inputs, targets):
     with tf.GradientTape() as tape:
-        loss_value = loss(model, inputs, targets)
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+        loss_value = loss(new_model, inputs, targets)
+    return loss_value, tape.gradient(loss_value, new_model.trainable_variables)
 
 
-def readCSV(source, column_names):
+def read_csv(source, column_names):
     return pd.read_csv(source, sep=',', decimal='.', header=None, names=column_names)
 
 
@@ -36,8 +36,8 @@ proc_split_test_csv_name = "splitTestProcLogs.csv"
 proc_train_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end', 'class']
 proc_test_column_names = ['time', 'user@domain', 'computer', 'process_name', 'start_end']
 
-proc_train_data_CSV = readCSV(proc_train_data_source, proc_train_column_names)
-proc_test_data_CSV = readCSV(proc_test_data_source, proc_test_column_names)
+proc_train_data_CSV = read_csv(proc_train_data_source, proc_train_column_names)
+proc_test_data_CSV = read_csv(proc_test_data_source, proc_test_column_names)
 
 X = proc_train_data_CSV.iloc[:, 1:5].values
 Y = proc_test_data_CSV.iloc[:, 1:5].values
@@ -68,7 +68,6 @@ proc_train_data_CSV = proc_train_data_CSV[['process_name', 'class']]
 proc_train_data_CSV.to_csv(proc_split_train_csv_name, header=False, index=False)
 proc_test_data_CSV.to_csv(proc_split_test_csv_name, header=False, index=False)
 
-
 feature_names = proc_train_column_names[:-1]
 label_name = proc_train_column_names[-1]
 
@@ -83,7 +82,6 @@ train_dataset = tf.data.experimental.make_csv_dataset(
     label_name=label_name,
     num_epochs=2
 )
-
 
 train_dataset = train_dataset.map(pack_features_vector)
 
