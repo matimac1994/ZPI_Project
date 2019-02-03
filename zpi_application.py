@@ -41,8 +41,8 @@ net_test_column_names = ['time', 'duration', 'source_computer', 'source_port', '
 split_train_column_names = ['time', 'duration', 'packet_count', 'byte_count', 'class']
 split_test_column_names = ['time', 'duration', 'packet_count', 'byte_count']
 
-net_train_data_CSV = readCSV(net_train_data_source, net_train_column_names)
-net_test_data_CSV = readCSV(net_test_data_source, net_test_column_names)
+net_train_data_CSV = read_csv(net_train_data_source, net_train_column_names)
+net_test_data_CSV = read_csv(net_test_data_source, net_test_column_names)
 
 split_train_data = net_train_data_CSV[split_train_column_names]
 split_test_data = net_test_data_CSV[split_test_column_names]
@@ -96,19 +96,14 @@ for epoch in range(num_epochs):
     epoch_loss_avg = tfe.metrics.Mean()
     epoch_accuracy = tfe.metrics.Accuracy()
 
-    # Training loop - using batches of 32
     for x, y in train_dataset:
-        # Optimize the model
         loss_value, grads = grad(model, x, y)
         optimizer.apply_gradients(zip(grads, model.trainable_variables),
                                   global_step)
 
-        # Track progress
         epoch_loss_avg(loss_value)  # add current batch loss
-        # compare predicted label to actual label
         epoch_accuracy(tf.argmax(model(x), axis=1, output_type=tf.int32), y)
 
-    # end epoch
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
 
@@ -116,6 +111,26 @@ for epoch in range(num_epochs):
         print("Epoch {:03d}: Loss: {:.3f}, Accuracy: {:.3%}".format(epoch,
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
+
+
+test_dataset = tf.data.experimental.make_csv_dataset(
+    net_split_train_csv_name,
+    batch_size,
+    column_names=split_train_column_names,
+    label_name=label_name,
+    num_epochs=1,
+    shuffle=False)
+
+test_dataset = test_dataset.map(pack_features_vector)
+
+test_accuracy = tfe.metrics.Accuracy()
+
+for (x, y) in test_dataset:
+  logits = model(x)
+  prediction = tf.argmax(logits, axis=1, output_type=tf.int32)
+  test_accuracy(prediction, y)
+
+print("Test set accuracy: {:.3%}".format(test_accuracy.result()))
 
 test_dataset = genfromtxt(net_split_test_csv_name, delimiter=',')
 
@@ -125,5 +140,5 @@ for i, logits in enumerate(predictions):
     class_idx = tf.argmax(logits).numpy()
     p = tf.nn.softmax(logits)[class_idx]
     name = class_names[class_idx]
-    print("Example {} prediction: {} ({:4.1f}%)".format(i, name, 100 * p))
-
+    if class_idx == 1:
+        print('Attack in example {} prediction: {} ({:4.1f}%)'.format(i, name, 100 * p))
