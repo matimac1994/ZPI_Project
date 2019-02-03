@@ -130,3 +130,5 @@ for i, logits in enumerate(predictions):
     p = tf.nn.softmax(logits)[class_idx]
     name = class_names[class_idx]
     print("Example {} prediction: {} ({:4.1f}%)".format(i, name, 100 * p))
+
+#changes......
