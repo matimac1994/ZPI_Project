@@ -11,24 +11,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class CSVReader {
+class CSVReader implements IDataReader {
 
-    private CSVParser csvParser;
+    private List<CSVRecord> allRecords;
 
     CSVReader(String path) throws IOException {
         Reader reader = Files.newBufferedReader(Paths.get(path));
-        this.csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader()
+        CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader()
                 .withIgnoreHeaderCase()
                 .withTrim());
+        allRecords = csvParser.getRecords();
     }
 
-    List<CSVRecord> getAllRecords() throws IOException {
-        return csvParser.getRecords();
+    @Override
+    public List<Record> readAll() {
+        return allRecords.stream().map(record ->
+                new Record(new ArrayList<String>(record.toMap().values()))).collect(Collectors.toList()
+        );
     }
 
-    List<Record> getRecordsByIndexes(List<String> indexes) throws IOException {
+    @Override
+    public List<Record> readByIndexes(List<String> indexes) {
         List<Record> records = new ArrayList<>();
-        for (CSVRecord csvRecord : getAllRecords()) {
+        for (CSVRecord csvRecord : allRecords) {
             records.add(new Record(indexes.stream().map(csvRecord::get).collect(Collectors.toList())));
         }
         return records;
